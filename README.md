@@ -1,27 +1,44 @@
-A pure Python implementation of [AES](http://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
+# AES-128bit
+My implementation  of ASE 128bit encryption written in pure Python! This features the ability to use ECB mode and CBC mode along with various types of input data.
 
-### TODO
 
-* Add 192 and 256 bit versions
+## ECB Mode
+The simplest of the encryption modes is the Electronic Codebook (ECB) mode. 
 
-### License
+The message is divided into blocks, and each block is encrypted separately.
+```Python
+# A simple example of encrypting an Hex string with ECB mode!
 
-    Copyright (C) 2012 Bo Zhu http://about.bozhu.me
+# Test vector 128-bit key
+key = '000102030405060708090a0b0c0d0e0f'
+# Hex string to encrypt!
+data = '00112233445566778899aabbccddeeff'
+# Set AES mode of operation (ECB, w/ hex input)
+aes = AES(mode='ecb', input_type='hex')
+# Encrypt data with your key
+cyphertext = aes.encryption(data, key)
+# Decrypt data with the same key
+plaintext = aes.decryption(cyphertext, key)
+```
 
-    Permission is hereby granted, free of charge, to any person obtaining a
-    copy of this software and associated documentation files (the "Software"),
-    to deal in the Software without restriction, including without limitation
-    the rights to use, copy, modify, merge, publish, distribute, sublicense,
-    and/or sell copies of the Software, and to permit persons to whom the
-    Software is furnished to do so, subject to the following conditions:
+## CBC Mode
+In CBC mode, each block of plaintext is XORed with the previous ciphertext block before being encrypted. This can be denoted as:
 
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
+Encryption:` Ci = Ek(Pi xor C(i-1)) and C0 = IV`
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-    DEALINGS IN THE SOFTWARE.
+Decryption: `Pi = Dk(Ci) xor C(i-1) and C0 = IV`
+
+```Python
+# A simple example of encrypting an random data with CBC mode!
+
+# Test vector 128-bit key
+key = '000102030405060708090a0b0c0d0e0f'
+# Random data to encrypt
+data = data = os.urandom(254)
+# Set AES mode of operation (CBC, w/ data input)
+aes = AES(mode='cbc', input_type='data', iv='000102030405060708090A0B0C0D0E0F')
+# Encrypt data with your key
+cyphertext = aes.encryption(data, key)
+# Decrypt data with the same key
+plaintext = aes.decryption(cyphertext, key)
+```

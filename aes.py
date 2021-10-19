@@ -1,219 +1,440 @@
-#!/usr/bin/env python
+import binascii
+import re
 
 
-"""
-    Copyright (C) 2012 Bo Zhu http://about.bozhu.me
+class AES(object):
+    """ Started on 3/16/2017
+    The Advanced Encryption Standard (AES), also known by its original
+    name Rijndael, is a specification for the encryption of electronic
+    data established by the U.S. National Institute of Standards and
+    Technology (NIST) in 2001. AES is a subset of the Rijndael cipher
+    developed by two Belgian cryptographers, Joan Daemen and Vincent
+    Rijmen, who submitted a proposal to NIST during the AES selection
+    process. Rijndael is a family of ciphers with different key
+    and block sizes.
 
-    Permission is hereby granted, free of charge, to any person obtaining a
-    copy of this software and associated documentation files (the "Software"),
-    to deal in the Software without restriction, including without limitation
-    the rights to use, copy, modify, merge, publish, distribute, sublicense,
-    and/or sell copies of the Software, and to permit persons to whom the
-    Software is furnished to do so, subject to the following conditions:
+    # Instructions for my AES implication
+    aes = AES(mode='ecb', input_type='hex')
+            
+    # Test vector 128-bit key
+    key = '000102030405060708090a0b0c0d0e0f'
+        
+    # Encrypt data with your key
+    cyphertext = aes.encryption('00112233445566778899aabbccddeeff', key)
+        
+    # Decrypt data with the same key
+    plaintext = aes.decryption(cyphertext, key) 
+    """
+    def __init__(self, mode, input_type, iv=None):
+        self.mode = mode
+        self.input = input_type
+        self.iv = iv
+        self.Nb = 0
+        self.Nk = 0
+        self.Nr = 0
 
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
+        # Rijndael S-box
+        self.sbox = [
+            0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67,
+            0x2b, 0xfe, 0xd7, 0xab, 0x76, 0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59,
+            0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0, 0xb7,
+            0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1,
+            0x71, 0xd8, 0x31, 0x15, 0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05,
+            0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75, 0x09, 0x83,
+            0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29,
+            0xe3, 0x2f, 0x84, 0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b,
+            0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf, 0xd0, 0xef, 0xaa,
+            0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c,
+            0x9f, 0xa8, 0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc,
+            0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2, 0xcd, 0x0c, 0x13, 0xec,
+            0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19,
+            0x73, 0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee,
+            0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb, 0xe0, 0x32, 0x3a, 0x0a, 0x49,
+            0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79,
+            0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4,
+            0xea, 0x65, 0x7a, 0xae, 0x08, 0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6,
+            0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a, 0x70,
+            0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9,
+            0x86, 0xc1, 0x1d, 0x9e, 0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e,
+            0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf, 0x8c, 0xa1,
+            0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0,
+            0x54, 0xbb, 0x16]
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-    DEALINGS IN THE SOFTWARE.
-"""
+        # Rijndael Inverted S-box
+        self.rsbox = [
+            0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3,
+            0x9e, 0x81, 0xf3, 0xd7, 0xfb, 0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f,
+            0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb, 0x54,
+            0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b,
+            0x42, 0xfa, 0xc3, 0x4e, 0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24,
+            0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25, 0x72, 0xf8,
+            0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d,
+            0x65, 0xb6, 0x92, 0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda,
+            0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84, 0x90, 0xd8, 0xab,
+            0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3,
+            0x45, 0x06, 0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1,
+            0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b, 0x3a, 0x91, 0x11, 0x41,
+            0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6,
+            0x73, 0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9,
+            0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e, 0x47, 0xf1, 0x1a, 0x71, 0x1d,
+            0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b,
+            0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0,
+            0xfe, 0x78, 0xcd, 0x5a, 0xf4, 0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07,
+            0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f, 0x60,
+            0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f,
+            0x93, 0xc9, 0x9c, 0xef, 0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5,
+            0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61, 0x17, 0x2b,
+            0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55,
+            0x21, 0x0c, 0x7d]
 
-Sbox = (
-    0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
-    0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
-    0xB7, 0xFD, 0x93, 0x26, 0x36, 0x3F, 0xF7, 0xCC, 0x34, 0xA5, 0xE5, 0xF1, 0x71, 0xD8, 0x31, 0x15,
-    0x04, 0xC7, 0x23, 0xC3, 0x18, 0x96, 0x05, 0x9A, 0x07, 0x12, 0x80, 0xE2, 0xEB, 0x27, 0xB2, 0x75,
-    0x09, 0x83, 0x2C, 0x1A, 0x1B, 0x6E, 0x5A, 0xA0, 0x52, 0x3B, 0xD6, 0xB3, 0x29, 0xE3, 0x2F, 0x84,
-    0x53, 0xD1, 0x00, 0xED, 0x20, 0xFC, 0xB1, 0x5B, 0x6A, 0xCB, 0xBE, 0x39, 0x4A, 0x4C, 0x58, 0xCF,
-    0xD0, 0xEF, 0xAA, 0xFB, 0x43, 0x4D, 0x33, 0x85, 0x45, 0xF9, 0x02, 0x7F, 0x50, 0x3C, 0x9F, 0xA8,
-    0x51, 0xA3, 0x40, 0x8F, 0x92, 0x9D, 0x38, 0xF5, 0xBC, 0xB6, 0xDA, 0x21, 0x10, 0xFF, 0xF3, 0xD2,
-    0xCD, 0x0C, 0x13, 0xEC, 0x5F, 0x97, 0x44, 0x17, 0xC4, 0xA7, 0x7E, 0x3D, 0x64, 0x5D, 0x19, 0x73,
-    0x60, 0x81, 0x4F, 0xDC, 0x22, 0x2A, 0x90, 0x88, 0x46, 0xEE, 0xB8, 0x14, 0xDE, 0x5E, 0x0B, 0xDB,
-    0xE0, 0x32, 0x3A, 0x0A, 0x49, 0x06, 0x24, 0x5C, 0xC2, 0xD3, 0xAC, 0x62, 0x91, 0x95, 0xE4, 0x79,
-    0xE7, 0xC8, 0x37, 0x6D, 0x8D, 0xD5, 0x4E, 0xA9, 0x6C, 0x56, 0xF4, 0xEA, 0x65, 0x7A, 0xAE, 0x08,
-    0xBA, 0x78, 0x25, 0x2E, 0x1C, 0xA6, 0xB4, 0xC6, 0xE8, 0xDD, 0x74, 0x1F, 0x4B, 0xBD, 0x8B, 0x8A,
-    0x70, 0x3E, 0xB5, 0x66, 0x48, 0x03, 0xF6, 0x0E, 0x61, 0x35, 0x57, 0xB9, 0x86, 0xC1, 0x1D, 0x9E,
-    0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,
-    0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
-)
+        self.rcon = [0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
 
-InvSbox = (
-    0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
-    0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87, 0x34, 0x8E, 0x43, 0x44, 0xC4, 0xDE, 0xE9, 0xCB,
-    0x54, 0x7B, 0x94, 0x32, 0xA6, 0xC2, 0x23, 0x3D, 0xEE, 0x4C, 0x95, 0x0B, 0x42, 0xFA, 0xC3, 0x4E,
-    0x08, 0x2E, 0xA1, 0x66, 0x28, 0xD9, 0x24, 0xB2, 0x76, 0x5B, 0xA2, 0x49, 0x6D, 0x8B, 0xD1, 0x25,
-    0x72, 0xF8, 0xF6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xD4, 0xA4, 0x5C, 0xCC, 0x5D, 0x65, 0xB6, 0x92,
-    0x6C, 0x70, 0x48, 0x50, 0xFD, 0xED, 0xB9, 0xDA, 0x5E, 0x15, 0x46, 0x57, 0xA7, 0x8D, 0x9D, 0x84,
-    0x90, 0xD8, 0xAB, 0x00, 0x8C, 0xBC, 0xD3, 0x0A, 0xF7, 0xE4, 0x58, 0x05, 0xB8, 0xB3, 0x45, 0x06,
-    0xD0, 0x2C, 0x1E, 0x8F, 0xCA, 0x3F, 0x0F, 0x02, 0xC1, 0xAF, 0xBD, 0x03, 0x01, 0x13, 0x8A, 0x6B,
-    0x3A, 0x91, 0x11, 0x41, 0x4F, 0x67, 0xDC, 0xEA, 0x97, 0xF2, 0xCF, 0xCE, 0xF0, 0xB4, 0xE6, 0x73,
-    0x96, 0xAC, 0x74, 0x22, 0xE7, 0xAD, 0x35, 0x85, 0xE2, 0xF9, 0x37, 0xE8, 0x1C, 0x75, 0xDF, 0x6E,
-    0x47, 0xF1, 0x1A, 0x71, 0x1D, 0x29, 0xC5, 0x89, 0x6F, 0xB7, 0x62, 0x0E, 0xAA, 0x18, 0xBE, 0x1B,
-    0xFC, 0x56, 0x3E, 0x4B, 0xC6, 0xD2, 0x79, 0x20, 0x9A, 0xDB, 0xC0, 0xFE, 0x78, 0xCD, 0x5A, 0xF4,
-    0x1F, 0xDD, 0xA8, 0x33, 0x88, 0x07, 0xC7, 0x31, 0xB1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xEC, 0x5F,
-    0x60, 0x51, 0x7F, 0xA9, 0x19, 0xB5, 0x4A, 0x0D, 0x2D, 0xE5, 0x7A, 0x9F, 0x93, 0xC9, 0x9C, 0xEF,
-    0xA0, 0xE0, 0x3B, 0x4D, 0xAE, 0x2A, 0xF5, 0xB0, 0xC8, 0xEB, 0xBB, 0x3C, 0x83, 0x53, 0x99, 0x61,
-    0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D,
-)
+    @staticmethod
+    def pad(data, block=16):
+        """ Padding method for data
+
+        :param data: Data to pad
+        :param int block: Block size
+        :return: Padded data """
+        if block < 2 or block > 255:
+            raise ValueError("Block Size must be < 2 and > 255")
+
+        if len(data) is block: return data
+        pads = block - (len(data) % block)
+        return data + binascii.unhexlify(('%02x' % int(pads)).encode()) + b'\x00' * (pads - 1)
+
+    @staticmethod
+    def unpad(data):
+        """ Un-Padding for data
+
+        :param data: Data to be un-padded
+        :return: Data with removed padding """
+        p = None
+        for x in data[::-1]:
+            if x is 0:
+                continue
+            elif x is not 0:
+                p = x; break
+        data = data[::-1]
+        data = data[p:]
+        return data[::-1]
+
+    @staticmethod
+    def unblock(data, size=16):
+        """ Unblock binary data
+
+        :param bytes data: Binary data to split into blocks
+        :param int size: Block size
+        :return: Blocked binary data """
+        # Return 64-bit blocks from data
+        return [data[x:x + size] for x in range(0, len(data), size)]
+
+    @staticmethod
+    def RotWord(word):
+        """ Takes a word [a0, a1, a2, a3] as input and perform a
+        cyclic permutation that returns the word [a1, a2, a3, a0].
+
+        :param str word: Row within State Matrix
+        :return: Circular byte left shift """
+        return int(word[2:] + word[0:2], 16)
+
+    @staticmethod
+    def StateMatrix(state):
+        """ Formats a State Matrix str to a properly formatted list.
+
+        :param str state: String State Matrix
+        :return: Formatted State Matrix """
+        new_state = []
+        split = re.findall('.' * 2, state)
+        for x in range(4):
+            new_state.append(split[0:4][x]); new_state.append(split[4:8][x])
+            new_state.append(split[8:12][x]); new_state.append(split[12:16][x])
+        return new_state
+
+    @staticmethod
+    def RevertStateMatrix(state):
+        """ Reverts State Matrix format as str
+
+        :param list state: Final State Matrix
+        :return: Reverted State Matrix """
+        columns = [state[x:x + 4] for x in range(0, 16, 4)]
+        return ''.join(''.join([columns[0][x], columns[1][x], columns[2][x], columns[3][x]]) for x in range(4))
+
+    @staticmethod
+    def galois(a, b):
+        """ Galois multiplication of 8 bit characters a and b
+
+        :param a: State Matrix col or row
+        :param b: Fixed number
+        :return: Galois field GF(2^8) """
+        p = 0
+        for counter in range(8):
+            if b & 1: p ^= a
+            hi_bit_set = a & 0x80
+            a <<= 1
+            # keep a 8 bit
+            a &= 0xFF
+            if hi_bit_set:
+                a ^= 0x1b
+            b >>= 1
+        return p
+
+    @staticmethod
+    def AddRoundKey(state, key):
+        """ Round Key is added to the State using an XOR operation.
+
+        :param list state: State Matrix
+        :param list key: Round Key
+        :return: Hex values of XOR operation """
+        return ['%02x' % (int(state[x], 16) ^ int(key[x], 16)) for x in range(16)]
+
+    def ShiftRows(self, state, isInv):
+        """ Changes the State by cyclically shifting the last
+        three rows of the State by different offsets.
+
+        :param list state: State Matrix
+        :param isInv: Encrypt or Decrypt
+        :return: Shifted state by offsets [0, 1, 2, 3] """
+        offset = 0
+        if isInv: state = re.findall('.' * 2, self.RevertStateMatrix(state))
+        for x in range(0, 16, 4):
+            state[x:x + 4] = state[x:x + 4][offset:] + state[x:x + 4][:offset]
+            if not isInv:
+                offset += 1
+            elif isInv:
+                offset -= 1
+        if isInv: return self.StateMatrix(''.join(state))
+        return state
+
+    def SubWord(self, byte):
+        """ Key Expansion routine that takes a four-byte
+        input word and applies an S-box substitution.
+
+        :param int byte: Output from the circular byte left shift
+        :return: Substituted bytes through sbox """
+        return ((self.sbox[(byte >> 24 & 0xff)] << 24) + (self.sbox[(byte >> 16 & 0xff)] << 16) +
+                (self.sbox[(byte >> 8 & 0xff)] << 8) + self.sbox[byte & 0xff])
+
+    def SubBytes(self, state, isInv):
+        """  Transforms the State Matrix using a nonlinear byte S-box
+        that operates on each of the State bytes independently.
+
+        :param state: State matrix input
+        :param isInv: Encrypt or decrypt mode
+        :returns: Byte substitution from the state matrix """
+        if not isInv: return ['%02x' % self.sbox[int(state[x], 16)] for x in range(16)]
+        elif isInv: return ['%02x' % self.rsbox[int(state[x], 16)] for x in range(16)]
+
+    # noinspection PyAssignmentToLoopOrWithParameter
+    def MixColumns(self, state, isInv):
+        """ Operates on the State column-by-column, treating each column as
+        a four-term polynomial. The columns are considered as polynomials
+        over GF(2^8) and multiplied modulo x^4 + 1 with a fixed polynomial a(x).
+
+        :param state: State Matrix input
+        :param isInv: Encrypt or decrypt mode
+        :return:
+        """
+        if isInv: fixed = [14, 9, 13, 11]; state = self.StateMatrix(''.join(state))
+        else: fixed = [2, 1, 1, 3]
+        columns = [state[x:x + 4] for x in range(0, 16, 4)]
+        row = [0, 3, 2, 1]
+        col = 0
+        output = []
+        for _ in range(4):
+            for _ in range(4):
+                # noinspection PyTypeChecker
+                output.append('%02x' % (
+                    self.galois(int(columns[row[0]][col], 16), fixed[0]) ^
+                    self.galois(int(columns[row[1]][col], 16), fixed[1]) ^
+                    self.galois(int(columns[row[2]][col], 16), fixed[2]) ^
+                    self.galois(int(columns[row[3]][col], 16), fixed[3])))
+                row = [row[-1]] + row[:-1]
+            col += 1
+        return output
+
+    def Cipher(self, expandedKey, data):
+        """ At the start of the Cipher, the input is copied to the
+        State Matrix. After an initial Round Key addition, the
+        State Matrix is transformed by implementing a round function
+        10, 12, or 14 times (depending on the key length), with the final
+        round differing slightly from the first Nr -1 rounds. The final
+        State Matrix is then copied as the output.
+
+        :param list expandedKey: The expanded key schedule
+        :param str data: Hex string to encrypt
+        :return: Encrypted data as a Hex string """
+        state = self.AddRoundKey(self.StateMatrix(data), expandedKey[0])
+        for r in range(self.Nr - 1):
+            state = self.SubBytes(state, False)
+            state = self.ShiftRows(state, False)
+            state = self.StateMatrix(''.join(self.MixColumns(state, False)))
+            state = self.AddRoundKey(state, expandedKey[r + 1])
+
+        state = self.SubBytes(state, False)
+        state = self.ShiftRows(state, False)
+        state = self.AddRoundKey(state, expandedKey[self.Nr])
+        return self.RevertStateMatrix(state)
+
+    def InvCipher(self, expandedKey, data):
+        state = self.AddRoundKey(re.findall('.' * 2, data), expandedKey[self.Nr])
+
+        for r in range(self.Nr - 1):
+            state = self.ShiftRows(state, True)
+            state = self.SubBytes(state, True)
+            state = self.AddRoundKey(state, expandedKey[-(r + 2)])
+            state = self.MixColumns(state, True)
+
+        state = self.ShiftRows(state, True)
+        state = self.SubBytes(state, True)
+        state = self.AddRoundKey(state, expandedKey[0])
+        return ''.join(state)
+
+    def ExpandKey(self, key):
+        """ Takes the Cipher Key and performs a Key Expansion routine to
+        generate a key schedule thus generating a total of Nb (Nr + 1) words.
+
+        :param str key: 128, 192, 256 bit Cipher Key
+        :return: Expanded Cipher Keys """
+        w = ['%08x' % int(x, 16) for x in re.findall('.' * 8, key)]
+
+        i = self.Nk
+        while i < self.Nb * (self.Nr + 1):
+            temp = w[i - 1]
+            if i % self.Nk is 0:
+                temp = '%08x' % (self.SubWord(self.RotWord(temp)) ^ (self.rcon[i // self.Nk] << 24))
+            elif self.Nk > 6 and i % self.Nk is 4:
+                temp = '%08x' % self.SubWord(int(temp, 16))
+            w.append('%08x' % (int(w[i - self.Nk], 16) ^ int(temp, 16)))
+            i += 1
+
+        return [self.StateMatrix(''.join(w[x:x + 4])) for x in range(0, len(w), self.Nk)]
+
+    def key_handler(self, key, isInv):
+        """ Gets the key length and sets Nb, Nk, Nr accordingly.
+
+        :param str key: 128, 192, 256 bit Cipher Key
+        :param isInv: Encrypt or decrypt mode
+        :return: Expanded Cipher Keys """
+        # 128-bit key
+        if len(key) is 32:
+            self.Nb = 4; self.Nk = 4; self.Nr = 10
+        # 192-bit key
+        elif len(key) is 48:
+            self.Nb = 4; self.Nk = 6; self.Nr = 12
+        # 256-bit key
+        elif len(key) is 64:
+            self.Nb = 4; self.Nk = 8; self.Nr = 14
+        # Raise error on invalid key size
+        else: raise AssertionError("%s Is an invalid Key!\nUse a 128-bit, 192-bit or 256-bit key!" % key)
+        # Return the expanded key
+        if not isInv: return self.ExpandKey(key)
+        # Return the inverse expanded key
+        if isInv: return [re.findall('.' * 2, self.RevertStateMatrix(x)) for x in self.ExpandKey(key)]
+
+    def aes_main(self, data, key, isInv):
+        """ Handle encryption and decryption modes
+
+        :param data: Data to be handled (type defined by input type)
+        :param key: Cipher Key to be expanded
+        :param isInv: Encrypt or decrypt mode
+        :return: Data as hex string or binary data (defined by output type) """
+        # Get the expanded key set
+        expanded_key = self.key_handler(key, isInv)
+        # Encrypt using ECB mode
+        if self.mode is 'ecb': return self.ecb(data, expanded_key, isInv)
+        # Encrypt using CBC mode
+        elif self.mode is 'cbc': return self.cbc(data, expanded_key, isInv)
+        # Raise error on invalid mode
+        else: raise AttributeError("\n\n\tSupported AES Modes of Operation are ['ecb', 'cbc']")
+
+    def encryption(self, data, key):
+        """ Main AES Encryption function
+
+        :param data: Input for encryption
+        :param key: Encryption key
+        :return: Encrypted data """
+        return self.aes_main(data, key, False)
+
+    def decryption(self, data, key):
+        """ Main AES Decryption function
+
+        :param data: Input for decryption
+        :param key: Decryption key
+        :return: Decrypted data """
+        return self.aes_main(data, key, True)
+
+    @staticmethod
+    def xor(first, last):
+        """ Xor method for CBC usage    
+    
+        :param first: first encrypted block
+        :param last: last encrypted block
+        :return: Xor output of two blocks """
+        first = re.findall('.' * 2, first)
+        last = re.findall('.' * 2, last)
+        return ''.join('%02x' % (int(first[x], 16) ^ int(last[x], 16)) for x in range(16))
+
+    def cbc(self, data, expanded_key, isInv):
+        """ CBC mode:
+        In CBC mode, each block of plaintext is XORed with the
+        previous ciphertext block before being encrypted.
+
+        Denoted as:
+            Encryption: Ci = Ek(Pi xor C(i-1)) and C0 = IV
+            Decryption: Pi = Dk(Ci) xor C(i-1) and C0 = IV
+
+        :param data: Data to be encrypted (type defined by input type)
+        :param expanded_key: The AES expanded key set
+        :param isInv:
+        :return: Data as string or binary data (defined by output type)"""
+        if self.iv is None: raise AttributeError("No Iv found!")
+        if self.input is 'hex':
+            if type(data) is not list: data = data.split()
+            blocks = [self.iv]; last = [self.iv] + data
+            if not isInv:
+                [blocks.append(self.Cipher(expanded_key, self.xor(blocks[-1], x))) for x in data]
+                return blocks[1:]
+            elif isInv:
+                return ''.join([self.xor(self.InvCipher(expanded_key, data[x]), last[x]) for x in range(len(data))])
+        elif self.input is 'data':
+            if not isInv:
+                data = re.findall('.' * 32, binascii.hexlify(self.pad(data)).decode()); blocks = [self.iv]
+                [blocks.append(self.Cipher(expanded_key, self.xor(blocks[-1], x))) for x in data]
+                return b''.join(binascii.unhexlify(x.encode()) for x in blocks[1:])
+            elif isInv:
+                data = re.findall('.' * 32, binascii.hexlify(data).decode()); last = [self.iv] + data
+                return self.unpad(b''.join(binascii.unhexlify(x.encode()) for x in [self.xor(
+                    self.InvCipher(expanded_key, data[x]), last[x]) for x in range(len(data))]))
+
+        # Raise error on invalid input
+        else: raise AttributeError("\n\n\tSupported AES inputs are ['hex', 'data']")
+
+    def ecb(self, data, expanded_key, isInv):
+        """ ECB mode:
+        The simplest of the encryption modes is the Electronic
+        Codebook (ECB) mode. The message is divided into blocks,
+        and each block is encrypted separately.
+
+        :param isInv: 
+        :param data: Data to be encrypted (type defined by input type)
+        :param expanded_key: The AES expanded key set
+        :return: Data as string or binary data (defined by output type)"""
+        # Encrypt hex string data
+        if self.input is 'hex':
+            if not isInv: return self.Cipher(expanded_key, data)
+            elif isInv: return self.InvCipher(expanded_key, data)
+        # Encrypt an text string
+        elif self.input is 'text':
+            if not isInv: return self.Cipher(expanded_key, ''.join('%02x' % x for x in self.pad(data.encode())))
+            elif isInv: return str(self.unpad(binascii.unhexlify(self.InvCipher(expanded_key, data).encode())))[2:-1]
+        # Encrypt a stream of binary data
+        elif self.input is 'data':
+            if not isInv: return b''.join(binascii.unhexlify(self.Cipher(
+                expanded_key, str(binascii.hexlify(x))[2:-1]).encode()) for x in self.unblock(data))
+            if isInv: return b''.join(binascii.unhexlify(self.InvCipher(
+                expanded_key, str(binascii.hexlify(x))[2:-1]).encode()) for x in self.unblock(data))
+        # Raise error on invalid input
+        else: raise AttributeError("\n\n\tSupported Input types are ['hex', 'text', 'data']")
 
 
-# learnt from http://cs.ucsb.edu/~koc/cs178/projects/JT/aes.c
-xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
-
-
-Rcon = (
-    0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40,
-    0x80, 0x1B, 0x36, 0x6C, 0xD8, 0xAB, 0x4D, 0x9A,
-    0x2F, 0x5E, 0xBC, 0x63, 0xC6, 0x97, 0x35, 0x6A,
-    0xD4, 0xB3, 0x7D, 0xFA, 0xEF, 0xC5, 0x91, 0x39,
-)
-
-
-def text2matrix(text):
-    matrix = []
-    for i in range(16):
-        byte = (text >> (8 * (15 - i))) & 0xFF
-        if i % 4 == 0:
-            matrix.append([byte])
-        else:
-            matrix[i / 4].append(byte)
-    return matrix
-
-
-def matrix2text(matrix):
-    text = 0
-    for i in range(4):
-        for j in range(4):
-            text |= (matrix[i][j] << (120 - 8 * (4 * i + j)))
-    return text
-
-
-class AES:
-    def __init__(self, master_key):
-        self.change_key(master_key)
-
-    def change_key(self, master_key):
-        self.round_keys = text2matrix(master_key)
-        # print self.round_keys
-
-        for i in range(4, 4 * 11):
-            self.round_keys.append([])
-            if i % 4 == 0:
-                byte = self.round_keys[i - 4][0]        \
-                     ^ Sbox[self.round_keys[i - 1][1]]  \
-                     ^ Rcon[i / 4]
-                self.round_keys[i].append(byte)
-
-                for j in range(1, 4):
-                    byte = self.round_keys[i - 4][j]    \
-                         ^ Sbox[self.round_keys[i - 1][(j + 1) % 4]]
-                    self.round_keys[i].append(byte)
-            else:
-                for j in range(4):
-                    byte = self.round_keys[i - 4][j]    \
-                         ^ self.round_keys[i - 1][j]
-                    self.round_keys[i].append(byte)
-
-        # print self.round_keys
-
-    def encrypt(self, plaintext):
-        self.plain_state = text2matrix(plaintext)
-
-        self.__add_round_key(self.plain_state, self.round_keys[:4])
-
-        for i in range(1, 10):
-            self.__round_encrypt(self.plain_state, self.round_keys[4 * i : 4 * (i + 1)])
-
-        self.__sub_bytes(self.plain_state)
-        self.__shift_rows(self.plain_state)
-        self.__add_round_key(self.plain_state, self.round_keys[40:])
-
-        return matrix2text(self.plain_state)
-
-    def decrypt(self, ciphertext):
-        self.cipher_state = text2matrix(ciphertext)
-
-        self.__add_round_key(self.cipher_state, self.round_keys[40:])
-        self.__inv_shift_rows(self.cipher_state)
-        self.__inv_sub_bytes(self.cipher_state)
-
-        for i in range(9, 0, -1):
-            self.__round_decrypt(self.cipher_state, self.round_keys[4 * i : 4 * (i + 1)])
-
-        self.__add_round_key(self.cipher_state, self.round_keys[:4])
-
-        return matrix2text(self.cipher_state)
-
-    def __add_round_key(self, s, k):
-        for i in range(4):
-            for j in range(4):
-                s[i][j] ^= k[i][j]
-
-
-    def __round_encrypt(self, state_matrix, key_matrix):
-        self.__sub_bytes(state_matrix)
-        self.__shift_rows(state_matrix)
-        self.__mix_columns(state_matrix)
-        self.__add_round_key(state_matrix, key_matrix)
-
-
-    def __round_decrypt(self, state_matrix, key_matrix):
-        self.__add_round_key(state_matrix, key_matrix)
-        self.__inv_mix_columns(state_matrix)
-        self.__inv_shift_rows(state_matrix)
-        self.__inv_sub_bytes(state_matrix)
-
-    def __sub_bytes(self, s):
-        for i in range(4):
-            for j in range(4):
-                s[i][j] = Sbox[s[i][j]]
-
-
-    def __inv_sub_bytes(self, s):
-        for i in range(4):
-            for j in range(4):
-                s[i][j] = InvSbox[s[i][j]]
-
-
-    def __shift_rows(self, s):
-        s[0][1], s[1][1], s[2][1], s[3][1] = s[1][1], s[2][1], s[3][1], s[0][1]
-        s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
-        s[0][3], s[1][3], s[2][3], s[3][3] = s[3][3], s[0][3], s[1][3], s[2][3]
-
-
-    def __inv_shift_rows(self, s):
-        s[0][1], s[1][1], s[2][1], s[3][1] = s[3][1], s[0][1], s[1][1], s[2][1]
-        s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
-        s[0][3], s[1][3], s[2][3], s[3][3] = s[1][3], s[2][3], s[3][3], s[0][3]
-
-    def __mix_single_column(self, a):
-        # please see Sec 4.1.2 in The Design of Rijndael
-        t = a[0] ^ a[1] ^ a[2] ^ a[3]
-        u = a[0]
-        a[0] ^= t ^ xtime(a[0] ^ a[1])
-        a[1] ^= t ^ xtime(a[1] ^ a[2])
-        a[2] ^= t ^ xtime(a[2] ^ a[3])
-        a[3] ^= t ^ xtime(a[3] ^ u)
-
-
-    def __mix_columns(self, s):
-        for i in range(4):
-            self.__mix_single_column(s[i])
-
-
-    def __inv_mix_columns(self, s):
-        # see Sec 4.1.3 in The Design of Rijndael
-        for i in range(4):
-            u = xtime(xtime(s[i][0] ^ s[i][2]))
-            v = xtime(xtime(s[i][1] ^ s[i][3]))
-            s[i][0] ^= u
-            s[i][1] ^= v
-            s[i][2] ^= u
-            s[i][3] ^= v
-
-        self.__mix_columns(s)
