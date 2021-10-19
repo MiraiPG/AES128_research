@@ -268,7 +268,7 @@ class AES(object):
         for r in range(self.Nr - 1):
             state = self.SubBytes(state, False)
             state = self.ShiftRows(state, False)
-            state = self.StateMatrix(''.join(self.MixColumns(state, False)))
+            #state = self.StateMatrix(''.join(self.MixColumns(state, False)))
             state = self.AddRoundKey(state, expandedKey[r + 1])
 
         state = self.SubBytes(state, False)
@@ -283,7 +283,7 @@ class AES(object):
             state = self.ShiftRows(state, True)
             state = self.SubBytes(state, True)
             state = self.AddRoundKey(state, expandedKey[-(r + 2)])
-            state = self.MixColumns(state, True)
+            #state = self.MixColumns(state, True)
 
         state = self.ShiftRows(state, True)
         state = self.SubBytes(state, True)
