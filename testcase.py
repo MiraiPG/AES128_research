@@ -3,7 +3,7 @@ from aes import AES
 import os
 import string
 import random
-
+import csv
 
 
 class Test_aes_ecb(unittest.TestCase):
@@ -12,26 +12,35 @@ class Test_aes_ecb(unittest.TestCase):
     # AES ECB Mode Testing for hex string.
     def test_hex(self):
         # Test vector 128-bit key
-        key = '000102030405060708090a0b0c0d0e0f'
+        key= '000102030405060708090a0b0c0d0e0f'
         # Aes mode of operation
         aes = AES(mode='ecb', input_type='hex')
         number = 1
         for i in range(number):
             #ランダムの数字を生成
             rand_num = random.randint(0,340282366920938463463374607431768211456)
-            #print(rand_num)
             rand_hex = format(rand_num,'x').zfill(32)
-            #print(rand_hex)
             # Encrypt data with your key
             cyphertext = aes.encryption(rand_hex, key)
             # Decrypt data with the same key
             plaintext = aes.decryption(cyphertext, key)
-            # Ensure that data is equal to plaintext
-            #self.assertEqual('00112233445566778899aabbccddeefe', plaintext)
-            #print(plaintext)
-            #print(cyphertext)
-            print(((bin(int(plaintext,base=16))).lstrip('0b')).zfill(128))
-            print(((bin(int(cyphertext,base=16))).lstrip('0b')).zfill(128))
+            plaintext_bin = ((bin(int(plaintext,base=16))).lstrip('0b')).zfill(128)
+            cyphertext_bin = ((bin(int(cyphertext,base=16))).lstrip('0b')).zfill(128)
+            #print(plaintext_bin)
+            #平文の上位8bitを出力([]の中身を変更すると抜き取る位を変更できる)
+            plaintext_bin_selected = (plaintext_bin[0:8])
+            print(plaintext_bin_selected)
+            #暗号文の上位8bitを出力([]の中身を変更すると抜き取る位を変更できる)
+            cyphertext_bin_selected = (cyphertext_bin[0:8])
+            print(cyphertext_bin_selected)
+            #csvファイルにデータの書き込み
+            data = [plaintext_bin_selected,cyphertext_bin_selected]
+            f = open('test.csv','a')
+            writer = csv.writer(f)
+            writer.writerow(data)
+            f.close()
+
+                
 
     '''
     # AES ECB Mode Testing for ascii string.
