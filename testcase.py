@@ -15,7 +15,7 @@ class Test_aes_ecb(unittest.TestCase):
         key_list= ['000102030405060708090a0b0c0d0e0f','100102030405060708090a0b0c0d0e0f','200102030405060708090a0b0c0d0e0f']
         # Aes mode of operation
         aes = AES(mode='ecb', input_type='hex')
-        number = 100000
+        number = 1
         for i in range(number):
             #ランダムの数字を生成
             rand_num = random.randint(0,340282366920938463463374607431768211456)
@@ -36,7 +36,7 @@ class Test_aes_ecb(unittest.TestCase):
                 #print(cyphertext_bin_selected)
                 #csvファイルにデータの書き込み
                 data = [plaintext_bin_selected,cyphertext_bin_selected]
-                f = open('data.csv','a')
+                f = open('test.csv','a')
                 writer = csv.writer(f)
                 writer.writerow(data)
                 f.close()
