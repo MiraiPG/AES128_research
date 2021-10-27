@@ -1,3 +1,4 @@
+from types import CodeType
 import unittest
 from aes import AES
 import os
@@ -16,11 +17,21 @@ class Test_aes_ecb(unittest.TestCase):
         # Aes mode of operation
         aes = AES(mode='ecb', input_type='hex')
         number = 1
+        '''
+        #AESの挙動確認
+        key = '000102030405060708090a0b0c0d0e0f'
+        m = '00112233445566778899aabbccddeeff'
+        c = aes.encryption(m,key)
+        c_bin = ((bin(int(c,base=16))).lstrip('0b')).zfill(128)
+        print(c_bin)
+        c_hex = ((hex(int(c_bin,base=16))).lstrip('0x')).zfill(32)
+        print(c_hex)
+        '''
         for i in range(number):
             #ランダムの数字を生成
             rand_num = random.randint(0,340282366920938463463374607431768211456)
             rand_hex = format(rand_num,'x').zfill(32)
-            for keynum in range(3):
+            for keynum in range(1):
                 # Encrypt data with your key
                 cyphertext = aes.encryption(rand_hex, key_list[keynum])
                 # Decrypt data with the same key
@@ -28,6 +39,7 @@ class Test_aes_ecb(unittest.TestCase):
                 plaintext_bin = ((bin(int(plaintext,base=16))).lstrip('0b')).zfill(128)
                 cyphertext_bin = ((bin(int(cyphertext,base=16))).lstrip('0b')).zfill(128)
                 #print(plaintext_bin)
+                #print(cyphertext_bin)
                 #平文の上位8bitを出力([]の中身を変更すると抜き取る位を変更できる)
                 plaintext_bin_selected = (plaintext_bin[0:8])
                 #print(plaintext_bin_selected)
@@ -36,12 +48,10 @@ class Test_aes_ecb(unittest.TestCase):
                 #print(cyphertext_bin_selected)
                 #csvファイルにデータの書き込み
                 data = [plaintext_bin_selected,cyphertext_bin_selected]
-                f = open('test.csv','a')
+                f = open('glaph_nonmix_100102030405060708090a0b0c0d0e0f_0-7.csv','a')
                 writer = csv.writer(f)
                 writer.writerow(data)
-                f.close()
-
-                
+                f.close()   
 
     '''
     # AES ECB Mode Testing for ascii string.

@@ -226,6 +226,7 @@ class AES(object):
         elif isInv: return ['%02x' % self.rsbox[int(state[x], 16)] for x in range(16)]
 
     # noinspection PyAssignmentToLoopOrWithParameter
+    '''
     def MixColumns(self, state, isInv):
         """ Operates on the State column-by-column, treating each column as
         a four-term polynomial. The columns are considered as polynomials
@@ -252,6 +253,7 @@ class AES(object):
                 row = [row[-1]] + row[:-1]
             col += 1
         return output
+    '''
 
     def Cipher(self, expandedKey, data):
         """ At the start of the Cipher, the input is copied to the
