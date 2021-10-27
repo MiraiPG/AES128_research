@@ -40,18 +40,20 @@ class Test_aes_ecb(unittest.TestCase):
                 cyphertext_bin = ((bin(int(cyphertext,base=16))).lstrip('0b')).zfill(128)
                 #print(plaintext_bin)
                 #print(cyphertext_bin)
-                #平文の上位8bitを出力([]の中身を変更すると抜き取る位を変更できる)
-                plaintext_bin_selected = (plaintext_bin[0:8])
-                #print(plaintext_bin_selected)
-                #暗号文の上位8bitを出力([]の中身を変更すると抜き取る位を変更できる)
-                cyphertext_bin_selected = (cyphertext_bin[0:8])
-                #print(cyphertext_bin_selected)
-                #csvファイルにデータの書き込み
-                data = [plaintext_bin_selected,cyphertext_bin_selected]
-                f = open('glaph_nonmix_100102030405060708090a0b0c0d0e0f_0-7.csv','a')
-                writer = csv.writer(f)
-                writer.writerow(data)
-                f.close()   
+                for i in range(120):
+                    #平文の上位8bitを出力([]の中身を変更すると抜き取る位を変更できる)
+                    plaintext_bin_selected = (plaintext_bin[i:i+8])
+                    #print(plaintext_bin_selected)
+                    #暗号文の上位8bitを出力([]の中身を変更すると抜き取る位を変更できる)
+                    cyphertext_bin_selected = (cyphertext_bin[i:i+8])
+                    #print(cyphertext_bin_selected)
+                    #csvファイルにデータの書き込み
+                    data = [plaintext_bin_selected,cyphertext_bin_selected]
+                    filename = f'glaph_nonmix_000102030405060708090a0b0c0d0e0f_{i}-{i+8}.csv'
+                    f = open(filename,'a')
+                    writer = csv.writer(f)
+                    writer.writerow(data)
+                    f.close()   
 
     '''
     # AES ECB Mode Testing for ascii string.
