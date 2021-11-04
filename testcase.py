@@ -31,11 +31,11 @@ class Test_aes_ecb(unittest.TestCase):
         c_hex = ((hex(int(c_bin,base=16))).lstrip('0x')).zfill(32)
         print(c_hex)
         '''
-        for i in range(number):
-            #ランダムの数字を生成
-            rand_num = random.randint(0,340282366920938463463374607431768211456)
-            rand_hex = format(rand_num,'x').zfill(32)
-            for keynum in range(256):
+        for keynum in range(2):
+            for i in range(number):
+                #ランダムの数字を生成
+                rand_num = random.randint(0,340282366920938463463374607431768211456)
+                rand_hex = format(rand_num,'x').zfill(32)
                 # Encrypt data with your key
                 cyphertext = aes.encryption(rand_hex, key_list[keynum])
                 # Decrypt data with the same key
@@ -53,7 +53,7 @@ class Test_aes_ecb(unittest.TestCase):
                     #print(cyphertext_bin_selected)
                     #csvファイルにデータの書き込み
                     data = [plaintext_bin_selected,cyphertext_bin_selected]
-                    filename = f'glaph_nonmix_{key_list[i]}_{i+1}-{i+8}.csv'
+                    filename = f'glaph_nonmix_{key_list[keynum]}_{i+1}-{i+8}.csv'
                     f = open(filename,'a')
                     writer = csv.writer(f)
                     writer.writerow(data)
