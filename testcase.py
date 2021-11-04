@@ -7,16 +7,20 @@ import random
 import csv
 
 
+
 class Test_aes_ecb(unittest.TestCase):
 
 
     # AES ECB Mode Testing for hex string.
     def test_hex(self):
         # Test vector 128-bit key
-        key_list= ['000102030405060708090a0b0c0d0e0f','100102030405060708090a0b0c0d0e0f','200102030405060708090a0b0c0d0e0f']
+        key_list= []
         # Aes mode of operation
         aes = AES(mode='ecb', input_type='hex')
-        number = 1
+        number = 100000
+        #256個の鍵作成
+        for num in range(256):
+            key_list.append(str(format(num,'x').zfill(2))+'0102030405060708090a0b0c0d0e0f')
         '''
         #AESの挙動確認
         key = '000102030405060708090a0b0c0d0e0f'
@@ -31,7 +35,7 @@ class Test_aes_ecb(unittest.TestCase):
             #ランダムの数字を生成
             rand_num = random.randint(0,340282366920938463463374607431768211456)
             rand_hex = format(rand_num,'x').zfill(32)
-            for keynum in range(1):
+            for keynum in range(256):
                 # Encrypt data with your key
                 cyphertext = aes.encryption(rand_hex, key_list[keynum])
                 # Decrypt data with the same key
@@ -40,7 +44,7 @@ class Test_aes_ecb(unittest.TestCase):
                 cyphertext_bin = ((bin(int(cyphertext,base=16))).lstrip('0b')).zfill(128)
                 #print(plaintext_bin)
                 #print(cyphertext_bin)
-                for i in range(120):
+                for i in range(1):
                     #平文の上位8bitを出力([]の中身を変更すると抜き取る位を変更できる)
                     plaintext_bin_selected = (plaintext_bin[i:i+8])
                     #print(plaintext_bin_selected)
@@ -49,7 +53,7 @@ class Test_aes_ecb(unittest.TestCase):
                     #print(cyphertext_bin_selected)
                     #csvファイルにデータの書き込み
                     data = [plaintext_bin_selected,cyphertext_bin_selected]
-                    filename = f'glaph_nonmix_000102030405060708090a0b0c0d0e0f_{i}-{i+8}.csv'
+                    filename = f'glaph_nonmix_{key_list[i]}_{i+1}-{i+8}.csv'
                     f = open(filename,'a')
                     writer = csv.writer(f)
                     writer.writerow(data)
